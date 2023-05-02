@@ -14,6 +14,10 @@ Avouons-le, nous n'avons pas vérifié la qualité du code. Mais vous êtes des 
 
 Au cas où, on a demandé à nos expert(e)s fonctionnels de rassembler les règles métier.
 
+## Ce qu'on attend de vous 
+* Implémenter les nouvelles fonctionnalités demandées
+* Sans casser la rétrocompatibilité du système. On a déjà des clients qui utilisent notre outil, et on ne veut pas les perdre.
+
 ## Règles métiers
 
 Notre tarificateur de billets de train prend en entrée les éléments suivants : 
