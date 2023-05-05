@@ -35,7 +35,7 @@ export class TrainTicketEstimator {
                 throw new InvalidTripInputException("Age is invalid");
             }
             if (pasngers[i].age < 1) {
-                tmp = 0;
+                continue;
             }
             // Seniors
             else if (pasngers[i].age <= 17) {
