@@ -15,7 +15,7 @@ export class TrainTicketEstimator {
             throw new InvalidTripInputException("Destination city is invalid");
         }
 
-        if (trainDetails.details.when < new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDay(), 0, 0, 0)) {
+        if (trainDetails.details.when < new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 0, 0, 0)) {
             throw new InvalidTripInputException("Date is invalid");
         }
 
