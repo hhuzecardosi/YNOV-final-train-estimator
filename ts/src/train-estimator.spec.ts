@@ -2,12 +2,14 @@ import {TrainTicketEstimator} from "./train-estimator";
 import {ApiException, InvalidTripInputException, Passenger, TripDetails, TripRequest} from "./model/trip.request";
 import {ApiFacade} from "./external/api-facade";
 
+const trainTicketPrice = 23;
+
 class FakeApiFacade implements ApiFacade{
     async getPriceEstimation(from: string, to: string, when: Date): Promise<number | -1> {
         if (from === "Bordeaos" || to === "Bordeaos") {
             return -1;
         }
-        return 23;
+        return trainTicketPrice;
     }
 }
 
@@ -81,6 +83,65 @@ describe("train estimator", function () {
             // ACT
             // ASSERT
             await expect(() => trainTicketEstimator.estimate(tripRequest)).rejects.toThrow(new InvalidTripInputException('Age is invalid'));
+        });
+    });
+
+    describe('should estimate the price of a train ticket without discount', () => {
+        const testCases = [
+            {passengers: [3], daysBeforeDeparture: 30, hoursBeforeDeparture: 0, expectedPrice: 9},
+            {passengers: [3], daysBeforeDeparture: 5, hoursBeforeDeparture: 0, expectedPrice: 9},
+
+            {passengers: [25], daysBeforeDeparture: 30, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 1.2) - (trainTicketPrice * 0.2)},
+            {passengers: [25], daysBeforeDeparture: 6, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice * 0.28)},
+            {passengers: [25], daysBeforeDeparture: 3, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice)},
+            {passengers: [25], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice)},
+            {passengers: [25], daysBeforeDeparture: 18, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice * 0.04)},
+
+            {passengers: [10], daysBeforeDeparture: 30, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.6) - (trainTicketPrice * 0.2)},
+            {passengers: [10], daysBeforeDeparture: 6, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice * 0.28)},
+            {passengers: [10], daysBeforeDeparture: 3, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice)},
+            {passengers: [10], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice)},
+            {passengers: [10], daysBeforeDeparture: 18, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice * 0.04)},
+
+            {passengers: [71], daysBeforeDeparture: 30, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.8) - (trainTicketPrice * 0.2)},
+            {passengers: [71], daysBeforeDeparture: 6, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice * 0.28)},
+            {passengers: [71], daysBeforeDeparture: 3, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice)},
+            {passengers: [71], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice)},
+            {passengers: [71], daysBeforeDeparture: 18, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice * 0.04)},
+        ]
+
+        testCases.forEach(async (testCase) => {
+            it(`should estimate the price for passengers with ages: ${testCase.passengers.join(',')}, at ${testCase.daysBeforeDeparture} days and ${testCase.hoursBeforeDeparture} before departure`, async () => {
+                const year = new Date().getFullYear();
+                const month = new Date().getMonth();
+                const day = new Date().getDate() + testCase.daysBeforeDeparture;
+                const hours = new Date().getHours() + testCase.hoursBeforeDeparture;
+                const tripDetails = new TripDetails("Paris", "Lyon", new Date(year, month, day, hours, 0, 0));
+                const passengers: Passenger[] = testCase.passengers.map(age => new Passenger(age, []));
+                const tripRequest: TripRequest = {details: tripDetails, passengers: passengers};
+
+                // ACT
+                const estimation = await trainTicketEstimator.estimate(tripRequest);
+
+                // ASSERT
+                expect(estimation).toEqual(testCase.expectedPrice);
+
+            });
+        });
+        it('should estimate the price of a train ticket for a passenger between 18 and 70 at 30 days before the departure', async () => {
+            // ARRANGE
+            const year = new Date().getFullYear();
+            const month = new Date().getMonth();
+            const day = new Date().getDate();
+            const tripDetails = new TripDetails("Paris", "Lyon", new Date(year, month, day + 30, 14, 55, 0));
+            const passengers: Passenger[] = [new Passenger(25, [])];
+            const tripRequest: TripRequest = {details: tripDetails, passengers: passengers};
+
+            // ACT
+            const estimation = await trainTicketEstimator.estimate(tripRequest);
+
+            // ASSERT
+            expect(estimation).toEqual((trainTicketPrice * 1.2) - (trainTicketPrice * 0.2));
         });
     });
 });
