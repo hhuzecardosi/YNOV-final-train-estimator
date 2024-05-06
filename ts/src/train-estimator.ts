@@ -1,4 +1,11 @@
-import {ApiException, DiscountCard, InvalidTripInputException, TripDetails, TripRequest} from "./model/trip.request";
+import {
+    AgeDiscountAmount,
+    ApiException,
+    DiscountCard, DiscountCardAmount,
+    InvalidTripInputException,
+    TripDetails,
+    TripRequest
+} from "./model/trip.request";
 import {ApiFacade} from "./external/api-facade";
 import {SNCFTrenitaliaApiFacade} from "./external/sncf-api-facade";
 
@@ -46,22 +53,10 @@ export class TrainTicketEstimator {
         let tmp = apiPriceEstimation;
         for (let i=0;i<passengers.length;i++) {
 
-            if (passengers[i].age < 0) {
-                throw new InvalidTripInputException("Age is invalid");
-            }
-            if (passengers[i].age < 1) {
-                continue;
-            }
-            // Seniors
-            else if (passengers[i].age <= 17) {
-            tmp = apiPriceEstimation* 0.6;
-            } else if(passengers[i].age >= 70) {
-                tmp = apiPriceEstimation * 0.8;
-                if (passengers[i].discounts.includes(DiscountCard.Senior)) {
-                    tmp -= apiPriceEstimation * 0.2;
-                }
-            } else {
-                tmp = apiPriceEstimation*1.2;
+            tmp = this.computeAgeDiscount(passengers[i].age, apiPriceEstimation);
+
+            if(passengers[i].age >= 70 && passengers[i].discounts.includes(DiscountCard.Senior)) {
+                tmp -= apiPriceEstimation * DiscountCardAmount.Senior;
             }
 
             const d = new Date();
@@ -124,5 +119,16 @@ export class TrainTicketEstimator {
         }
 
         return tot;
+    }
+
+    private computeAgeDiscount(age: number, price: number): number {
+        if (age < 0) { throw new InvalidTripInputException('Age is invalid')}
+        if (age < 1) { return AgeDiscountAmount.LessThanOne }
+        if (age <= 3) { return AgeDiscountAmount.LessThanThree }
+
+        if (age <= 17) { return price * (1 - AgeDiscountAmount.LessThanEighteen)}
+        if (age >= 70) { return price * (1 - AgeDiscountAmount.MoreThanSeventy)}
+
+        return price * AgeDiscountAmount.Default;
     }
 }
