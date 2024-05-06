@@ -59,6 +59,10 @@ export class TrainTicketEstimator {
                 tmp -= apiPriceEstimation * DiscountCardAmount.Senior;
             }
 
+            if (passengers[i].age < 4) {
+                continue;
+            }
+
             const d = new Date();
             if (trainDetails.details.when.getTime() >= d.setDate(d.getDate() +30)) {
                 tmp -= apiPriceEstimation * 0.2;
