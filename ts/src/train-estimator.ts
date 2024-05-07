@@ -50,29 +50,27 @@ export class TrainTicketEstimator {
 
         const passengers = trainDetails.passengers;
         let tot = 0;
-        let tmp = apiPriceEstimation;
-        for (let i=0;i<passengers.length;i++) {
 
-            tmp = this.computeAgeDiscount(passengers[i].age, apiPriceEstimation);
+        for (let i=0;i<passengers.length;i++) {
+            let priceForPassenger = apiPriceEstimation;
+            priceForPassenger = this.computeAgeDiscount(passengers[i].age, apiPriceEstimation);
 
             if(passengers[i].age >= 70 && passengers[i].discounts.includes(DiscountCard.Senior)) {
-                tmp -= apiPriceEstimation * DiscountCardAmount.Senior;
+                priceForPassenger -= apiPriceEstimation * DiscountCardAmount.Senior;
             }
 
             if (passengers[i].age < 4) {
-                tot += tmp;
-                tmp = apiPriceEstimation;
+                tot += priceForPassenger;
                 continue;
             }
 
-            tmp += this.computeDateDiscount(trainDetails.details.when, apiPriceEstimation);
+            priceForPassenger += this.computeDateDiscount(trainDetails.details.when, apiPriceEstimation);
 
             if (passengers[i].discounts.includes(DiscountCard.TrainStroke)) {
-                tmp = 1;
+                priceForPassenger = 1;
             }
 
-            tot += tmp;
-            tmp = apiPriceEstimation;
+            tot += priceForPassenger;
         }
 
         if (passengers.length == 2) {
