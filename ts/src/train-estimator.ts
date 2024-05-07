@@ -65,20 +65,7 @@ export class TrainTicketEstimator {
                 continue;
             }
 
-            const d = new Date();
-            if (trainDetails.details.when.getTime() >= d.setDate(d.getDate() +30)) {
-                tmp -= apiPriceEstimation * 0.2;
-            } else if (trainDetails.details.when.getTime() > d.setDate(d.getDate() -30 + 5)) {
-                const date1 = trainDetails.details.when;
-                const date2 = new Date();
-                //https://stackoverflow.com/questions/43735678/typescript-get-difference-between-two-dates-in-days
-                var diff = Math.abs(date1.getTime() - date2.getTime());
-                var diffDays = Math.ceil(diff / (1000 * 3600 * 24));
-
-                tmp += (20 - diffDays) * 0.02 * apiPriceEstimation; // I tried. it works. I don't know why.
-            } else {
-                tmp += apiPriceEstimation;
-            }
+            tmp += this.computeDateDiscount(trainDetails.details.when, apiPriceEstimation);
 
             if (passengers[i].discounts.includes(DiscountCard.TrainStroke)) {
                 tmp = 1;
@@ -132,5 +119,25 @@ export class TrainTicketEstimator {
         if (age >= 70) { return price * (1 - AgeDiscountAmount.MoreThanSeventy)}
 
         return price * AgeDiscountAmount.Default;
+    }
+
+    private computeDateDiscount(dateDeparture: Date, apiPriceEstimation: number): number {
+        const now = new Date();
+        const thirtyDays = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30);
+        const fiveDays = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5);
+
+        const percentagePerDate = 0.02;
+        const daysBeforePositivePercentage = 20;
+
+        if (dateDeparture >= thirtyDays) {
+            return apiPriceEstimation * -0.2
+        }
+
+        if(dateDeparture < thirtyDays && dateDeparture > fiveDays ) {
+            const daysBeforeDeparture = Math.ceil((dateDeparture.getTime() - now.getTime()) / (1000 * 3600 * 24));
+            return (daysBeforePositivePercentage - daysBeforeDeparture) * percentagePerDate * apiPriceEstimation;
+        }
+
+        return apiPriceEstimation;
     }
 }
