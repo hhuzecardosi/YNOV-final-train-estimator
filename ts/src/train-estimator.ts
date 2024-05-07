@@ -1,13 +1,17 @@
 import {
     AgeDiscountAmount,
     ApiException,
-    DiscountCard, DiscountCardAmount,
+    DiscountCard,
+    DiscountCardAmount,
     InvalidTripInputException,
+    Passenger,
     TripDetails,
     TripRequest
 } from "./model/trip.request";
 import {ApiFacade} from "./external/api-facade";
 import {SNCFTrenitaliaApiFacade} from "./external/sncf-api-facade";
+
+type PassengerPrice = {passenger: Passenger, price: number};
 
 export class TrainTicketEstimator {
 
@@ -49,63 +53,26 @@ export class TrainTicketEstimator {
         }
 
         const passengers = trainDetails.passengers;
-        let tot = 0;
+
+        const passengersPrices: PassengerPrice[] = [];
 
         for (let i=0;i<passengers.length;i++) {
             let priceForPassenger = apiPriceEstimation;
             priceForPassenger = this.computeAgeDiscount(passengers[i].age, apiPriceEstimation);
 
-            if(passengers[i].age >= 70 && passengers[i].discounts.includes(DiscountCard.Senior)) {
-                priceForPassenger -= apiPriceEstimation * DiscountCardAmount.Senior;
-            }
-
             if (passengers[i].age < 4) {
-                tot += priceForPassenger;
+                passengersPrices.push({passenger: passengers[i], price: priceForPassenger});
                 continue;
             }
 
             priceForPassenger += this.computeDateDiscount(trainDetails.details.when, apiPriceEstimation);
 
-            if (passengers[i].discounts.includes(DiscountCard.TrainStroke)) {
-                priceForPassenger = 1;
-            }
-
-            tot += priceForPassenger;
+            passengersPrices.push({passenger: passengers[i], price: priceForPassenger});
         }
 
-        if (passengers.length == 2) {
-            let cp = false;
-            let mn = false;
-            for (let i=0;i<passengers.length;i++) {
-                if (passengers[i].discounts.includes(DiscountCard.Couple)) {
-                    cp = true;
-                }
-                if (passengers[i].age < 18) {
-                    mn = true;
-                }
-            }
-            if (cp && !mn) {
-                tot -= apiPriceEstimation * 0.2 * 2;
-            }
-        }
+        const finalPassengersPrices = this.computeDiscountCardAmount(passengersPrices, apiPriceEstimation);
 
-        if (passengers.length == 1) {
-            let cp = false;
-            let mn = false;
-            for (let i=0;i<passengers.length;i++) {
-                if (passengers[i].discounts.includes(DiscountCard.HalfCouple)) {
-                    cp = true;
-                }
-                if (passengers[i].age < 18) {
-                    mn = true;
-                }
-            }
-            if (cp && !mn) {
-                tot -= apiPriceEstimation * 0.1;
-            }
-        }
-
-        return tot;
+        return finalPassengersPrices.reduce((acc, passengerPrice) => acc + passengerPrice.price, 0);
     }
 
     private computeAgeDiscount(age: number, price: number): number {
@@ -137,5 +104,33 @@ export class TrainTicketEstimator {
         }
 
         return apiPriceEstimation;
+    }
+
+    private computeDiscountCardAmount(passengersPrices: PassengerPrice[], apiPriceEstimation: number): PassengerPrice[] {
+        const result: PassengerPrice[] = passengersPrices
+        result.forEach( passengerPrice => {
+            if (passengerPrice.passenger.discounts.includes(DiscountCard.TrainStroke)) {
+                passengerPrice.price = DiscountCardAmount.TrainStroke;
+                return;
+            }
+
+            if (passengerPrice.passenger.age < 4) {
+                return;
+            }
+
+            if(result.length === 1 && passengerPrice.passenger.age >= 18
+              && passengerPrice.passenger.discounts.includes(DiscountCard.HalfCouple)){
+                passengerPrice.price -= apiPriceEstimation * DiscountCardAmount.HalfCouple;
+            }
+            if (passengerPrice.passenger.age >= 70 && passengerPrice.passenger.discounts.includes(DiscountCard.Senior)) {
+                passengerPrice.price -= apiPriceEstimation * DiscountCardAmount.Senior;
+            }
+
+            if (result.length === 2 && passengerPrice.passenger.age >= 18
+              && passengersPrices.find(p => p.passenger.discounts.includes(DiscountCard.Couple)) !== undefined) {
+                passengerPrice.price -= apiPriceEstimation * DiscountCardAmount.Couple;
+            }
+        });
+        return result;
     }
 }
