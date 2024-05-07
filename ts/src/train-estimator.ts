@@ -60,6 +60,8 @@ export class TrainTicketEstimator {
             }
 
             if (passengers[i].age < 4) {
+                tot += tmp;
+                tmp = apiPriceEstimation;
                 continue;
             }
 
@@ -76,10 +78,6 @@ export class TrainTicketEstimator {
                 tmp += (20 - diffDays) * 0.02 * apiPriceEstimation; // I tried. it works. I don't know why.
             } else {
                 tmp += apiPriceEstimation;
-            }
-
-            if (passengers[i].age > 0 && passengers[i].age < 4) {
-                tmp = 9;
             }
 
             if (passengers[i].discounts.includes(DiscountCard.TrainStroke)) {
