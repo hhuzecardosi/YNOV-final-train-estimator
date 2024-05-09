@@ -101,19 +101,19 @@ describe("train estimator", function () {
             {passengers: [25], daysBeforeDeparture: 30, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 1.2) - (trainTicketPrice * 0.2)},
             {passengers: [25], daysBeforeDeparture: 6, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice * 0.28)},
             {passengers: [25], daysBeforeDeparture: 3, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice)},
-            {passengers: [25], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice)},
+            {passengers: [25], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice) * -0.2},
             {passengers: [25], daysBeforeDeparture: 18, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 1.2) + (trainTicketPrice * 0.04)},
 
             {passengers: [10], daysBeforeDeparture: 30, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.6) - (trainTicketPrice * 0.2)},
             {passengers: [10], daysBeforeDeparture: 6, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice * 0.28)},
             {passengers: [10], daysBeforeDeparture: 3, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice)},
-            {passengers: [10], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice)},
+            {passengers: [10], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice) * -0.2},
             {passengers: [10], daysBeforeDeparture: 18, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.6) + (trainTicketPrice * 0.04)},
 
             {passengers: [71], daysBeforeDeparture: 30, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.8) - (trainTicketPrice * 0.2)},
             {passengers: [71], daysBeforeDeparture: 6, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice * 0.28)},
             {passengers: [71], daysBeforeDeparture: 3, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice)},
-            {passengers: [71], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice)},
+            {passengers: [71], daysBeforeDeparture: 0, hoursBeforeDeparture: 5, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice) * -0.2},
             {passengers: [71], daysBeforeDeparture: 18, hoursBeforeDeparture: 0, expectedPrice: (trainTicketPrice * 0.8) + (trainTicketPrice * 0.04)},
         ]
 
@@ -202,13 +202,13 @@ describe("train estimator", function () {
             // ACT
             const estimation1 = await trainTicketEstimator.estimate(tripRequest);
 
-            const passager1 = trainTicketPrice * 1.2;
-            const passager2 = trainTicketPrice * 1.2;
+            const passenger1 = trainTicketPrice * 1.2;
+            const passenger2 = trainTicketPrice * 1.2;
             const coupleReduction = trainTicketPrice * 0.2;
             const dateReduction = trainTicketPrice * 0.2;
 
             // ASSERT
-            expect(estimation1).toBe((passager1 - coupleReduction - dateReduction) + (passager2 - coupleReduction - dateReduction));
+            expect(estimation1).toBe((passenger1 - coupleReduction - dateReduction) + (passenger2 - coupleReduction - dateReduction));
         });
 
         it('should add a 40% reduction for a couple of senior', async () => {
@@ -220,14 +220,14 @@ describe("train estimator", function () {
             // ACT
             const estimation = await trainTicketEstimator.estimate(tripRequest);
 
-            const passager1 = trainTicketPrice * 0.8;
-            const passager2 = trainTicketPrice * 0.8;
+            const passenger1 = trainTicketPrice * 0.8;
+            const passenger2 = trainTicketPrice * 0.8;
             const coupleReduction = trainTicketPrice * 0.2;
             const seniorReduction = trainTicketPrice * 0.2;
             const dateReduction = trainTicketPrice * 0.2;
 
             // ASSERT
-            expect(estimation).toBe((passager1 - coupleReduction - dateReduction - seniorReduction) + (passager2 - seniorReduction - dateReduction - coupleReduction));
+            expect(estimation).toBe((passenger1 - coupleReduction - dateReduction - seniorReduction) + (passenger2 - seniorReduction - dateReduction - coupleReduction));
         });
 
         it('should add a 10% reduction for a Mi-Couple reduction', async () => {
@@ -239,12 +239,12 @@ describe("train estimator", function () {
             // ACT
             const estimation = await trainTicketEstimator.estimate(tripRequest);
 
-            const passager1 = trainTicketPrice * 1.2;
+            const passenger1 = trainTicketPrice * 1.2;
             const coupleReduction = trainTicketPrice * 0.1;
             const dateReduction = trainTicketPrice * 0.2;
 
             // ASSERT
-            expect(estimation).toBe((passager1 - dateReduction - coupleReduction));
+            expect(estimation).toBe((passenger1 - dateReduction - coupleReduction));
         });
     });
 
@@ -276,6 +276,61 @@ describe("train estimator", function () {
 
             // ASSERT
             expect(estimation).toBe((passenger + dateReduction));
+        });
+    });
+    
+    describe('Family card should apply 30% discount', () => {
+        
+        let lastName: string;
+        let year: number;
+        let month: number;
+        let day: number;
+        let hours: number;
+
+        beforeEach(() => {
+            lastName = 'Dupont';
+            year = new Date().getFullYear();
+            month = new Date().getMonth();
+            day = new Date().getDate();
+            hours = new Date().getHours();
+        });
+
+        it('should apply a 30% reduction for all adult passenger', async () => {
+            // ARRANGE
+            const tripDetails = new TripDetails("Paris", "Lyon", new Date(year, month, day + 30, 0, 0, 0));
+            const passengers: Passenger[] = [new Passenger(25, [DiscountCard.Family], lastName), new Passenger(28, [], lastName), new Passenger(3, [], lastName)]
+            const tripRequest: TripRequest = {details: tripDetails, passengers: passengers};
+
+            // ACT
+            const estimation1 = await trainTicketEstimator.estimate(tripRequest);
+
+            const passenger1 = trainTicketPrice * 1.2;
+            const passenger2 = trainTicketPrice * 1.2;
+            const passenger3 = 9;
+            const familyReduction = trainTicketPrice * 0.3;
+            const dateReduction = trainTicketPrice * 0.2;
+
+            // ASSERT
+            expect(estimation1).toBe((passenger1 - familyReduction - dateReduction) + (passenger2 - familyReduction - dateReduction) + passenger3);
+        });
+
+        it('should apply a 30% reduction for the adult with family card but not the other', async () => {
+            // ARRANGE
+            const tripDetails = new TripDetails("Paris", "Lyon", new Date(year, month, day + 30, 0, 0, 0));
+            const passengers: Passenger[] = [new Passenger(25, [DiscountCard.Family], lastName), new Passenger(28, [], 'Durant'), new Passenger(3, [], lastName)]
+            const tripRequest: TripRequest = {details: tripDetails, passengers: passengers};
+
+            // ACT
+            const estimation1 = await trainTicketEstimator.estimate(tripRequest);
+
+            const passenger1 = trainTicketPrice * 1.2;
+            const passenger2 = trainTicketPrice * 1.2;
+            const passenger3 = 9;
+            const familyReduction = trainTicketPrice * 0.3;
+            const dateReduction = trainTicketPrice * 0.2;
+
+            // ASSERT
+            expect(estimation1).toBe((passenger1 - familyReduction - dateReduction) + (passenger2 - dateReduction) + passenger3);
         });
     });
 });
