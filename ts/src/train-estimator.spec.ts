@@ -247,4 +247,35 @@ describe("train estimator", function () {
             expect(estimation).toBe((passager1 - dateReduction - coupleReduction));
         });
     });
+
+    describe('train reservation at 6h before departure', () => {
+
+        let year: number;
+        let month: number;
+        let day: number;
+        let hours: number;
+
+        beforeEach(() => {
+            year = new Date().getFullYear();
+            month = new Date().getMonth();
+            day = new Date().getDate();
+            hours = new Date().getHours();
+        });
+
+        it('should apply a 20% discount', async () => {
+            // ARRANGE
+            const tripDetails = new TripDetails("Paris", "Lyon", new Date(year, month, day, hours + 5, 0, 0));
+            const passengers: Passenger[] = [new Passenger(39, [])]
+            const tripRequest: TripRequest = {details: tripDetails, passengers: passengers};
+
+            // ACT
+            const estimation = await trainTicketEstimator.estimate(tripRequest);
+
+            const passenger = trainTicketPrice * 1.2;
+            const dateReduction = trainTicketPrice * - 0.2;
+
+            // ASSERT
+            expect(estimation).toBe((passenger + dateReduction));
+        });
+    });
 });

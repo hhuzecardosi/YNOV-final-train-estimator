@@ -90,6 +90,7 @@ export class TrainTicketEstimator {
         const now = new Date();
         const thirtyDays = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30);
         const fiveDays = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5);
+        const sixHours = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 6)
 
         const percentagePerDate = 0.02;
         const daysBeforePositivePercentage = 20;
@@ -103,6 +104,9 @@ export class TrainTicketEstimator {
             return (daysBeforePositivePercentage - daysBeforeDeparture) * percentagePerDate * apiPriceEstimation;
         }
 
+        if (dateDeparture <= sixHours) {
+            return apiPriceEstimation * -0.2
+        }
         return apiPriceEstimation;
     }
 
