@@ -112,6 +112,8 @@ export class TrainTicketEstimator {
 
     private computeDiscountCardAmount(passengersPrices: PassengerPrice[], apiPriceEstimation: number): PassengerPrice[] {
         const result: PassengerPrice[] = passengersPrices
+        const familyDiscount: PassengerPrice | undefined = passengersPrices.find(p => p.passenger.discounts.includes(DiscountCard.Family))
+
         result.forEach( passengerPrice => {
             if (passengerPrice.passenger.discounts.includes(DiscountCard.TrainStroke)) {
                 passengerPrice.price = DiscountCardAmount.TrainStroke;
@@ -119,6 +121,11 @@ export class TrainTicketEstimator {
             }
 
             if (passengerPrice.passenger.age < 4) {
+                return;
+            }
+
+            if (passengerPrice.passenger.lastname != null && passengerPrice.passenger.lastname == familyDiscount?.passenger?.lastname) {
+                passengerPrice.price -= apiPriceEstimation * DiscountCardAmount.Family
                 return;
             }
 
